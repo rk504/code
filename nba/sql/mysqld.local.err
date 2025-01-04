@@ -1,0 +1,11 @@
+2025-01-03T15:21:17.826387Z 0 [System] [MY-010116] [Server] /Users/Shared/DBngin/mysql/8.0.33/bin/mysqld (mysqld 8.0.33) starting as process 45977
+2025-01-03T15:21:17.834667Z 0 [Warning] [MY-010159] [Server] Setting lower_case_table_names=2 because file system for /Users/reese/code/nba/sql/ is case insensitive
+2025-01-03T15:21:17.856359Z 0 [Warning] [MY-010122] [Server] One can only use the --user switch if running as root
+2025-01-03T15:21:18.037881Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2025-01-03T15:21:18.105312Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2025-01-03T15:21:18.494626Z 0 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+2025-01-03T15:21:18.494646Z 0 [System] [MY-013602] [Server] Channel mysql_main configured to support TLS. Encrypted connections are now supported for this channel.
+2025-01-03T15:21:18.502752Z 0 [System] [MY-011323] [Server] X Plugin ready for connections. Bind-address: '::' port: 33060, socket: /tmp/mysqlx.sock
+2025-01-03T15:21:18.502775Z 0 [System] [MY-010931] [Server] /Users/Shared/DBngin/mysql/8.0.33/bin/mysqld: ready for connections. Version: '8.0.33'  socket: '/tmp/mysql_3306.sock'  port: 3306  MySQL Community Server - GPL.
+2025-01-03T15:33:43.297227Z 0 [System] [MY-013172] [Server] Received SHUTDOWN from user <via user signal>. Shutting down mysqld (Version: 8.0.33).
+2025-01-03T15:33:44.060953Z 0 [System] [MY-010910] [Server] /Users/Shared/DBngin/mysql/8.0.33/bin/mysqld: Shutdown complete (mysqld 8.0.33)  MySQL Community Server - GPL.
