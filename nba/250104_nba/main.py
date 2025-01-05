@@ -1,4 +1,3 @@
-# %% [code] {"execution":{"iopub.status.busy":"2025-01-03T19:48:27.416706Z","iopub.execute_input":"2025-01-03T19:48:27.417102Z","iopub.status.idle":"2025-01-03T19:48:27.932731Z","shell.execute_reply.started":"2025-01-03T19:48:27.417072Z","shell.execute_reply":"2025-01-03T19:48:27.931721Z"}}
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -20,6 +19,7 @@ team_data = pd.read_csv('~/code/data/kaggle/input/basketball/csv/TeamHistories.c
 team_data_reversed = team_data.iloc[::-1].reset_index(drop=True)
 
 team_data = team_data_reversed
+print(team_data.head())
 
 
 # %% [code] {"execution":{"iopub.status.busy":"2025-01-03T19:48:27.416706Z","iopub.execute_input":"2025-01-03T19:48:27.417102Z","iopub.status.idle":"2025-01-03T19:48:27.932731Z","shell.execute_reply.started":"2025-01-03T19:48:27.417072Z","shell.execute_reply":"2025-01-03T19:48:27.931721Z"}}
@@ -27,7 +27,7 @@ team_data = team_data_reversed
 team_data['teamAbbrev'] = team_data['teamAbbrev'].str.strip().str.upper()
 
 # Replace abbreviations
-team_data['teamAbbrev'] = team_data['teamAbbrev'].replace({'SEA': 'OKC', 'NOH': 'NOP', 'NJN': 'BKN', 'NOK': 'NOP', 'GS': 'GSW'})
+team_data['teamAbbrev'] = team_data['teamAbbrev'].replace({'SEA': 'OKC', 'NOH': 'NOP', 'NJN': 'BKN', 'NOK': 'NOP'})
 
 # Print the first few rows to check if replacements worked
 print(team_data.head())
@@ -41,7 +41,7 @@ allowed_teams = [
 # Step 1: Filter team_data to only include teams in allowed_teams
 team_data_filtered = team_data[team_data['teamAbbrev'].isin(allowed_teams)]
 # Filter team_data to keep only rows where 'yearActiveTill' >= 2023
-#team_data_filtered = team_data[(team_data['yearActiveTill'] >= 2023) | team_data['yearActiveTill'].isna()]
+# team_data_filtered = team_data[(team_data['yearActiveTill'] >= 2023) | team_data['yearActiveTill'].isna()]
 # Print the filtered data
 print(team_data_filtered)
 # Number of rows and columns in the DataFrame
@@ -57,6 +57,8 @@ team_data_filtered = team_data_sorted.drop_duplicates(subset='teamAbbrev')
 
 # Check the result
 print(team_data_filtered)
+print("Length of filtered team data:", len(team_data_filtered))
+
 
 # %% [code] {"execution":{"iopub.status.busy":"2025-01-03T19:48:27.416706Z","iopub.execute_input":"2025-01-03T19:48:27.417102Z","iopub.status.idle":"2025-01-03T19:48:27.932731Z","shell.execute_reply.started":"2025-01-03T19:48:27.417072Z","shell.execute_reply":"2025-01-03T19:48:27.931721Z"}}
 
