@@ -218,7 +218,7 @@ plt.show()
 
 #not bad. issues with DEN and NOP since rebranding...Why's it missing?? DEN and MIN since 2012? Can rly perfect this and then send it off. Got p far, but 2012 season is still fkn weird.
 #fixed this thanks to data bogue - issue is now 2012-13 season is missing a serious amount of data from the table data. Need to fix this.
-# %%
+ # %%
 # Check the 2012 data in the game_data
 season_2012_data_game = game_data[game_data['season'] == '2012-13']
 
@@ -249,4 +249,5 @@ total_home_wins_2012 = season_2012_data['win'].sum()
 
 # Print the total number of home wins for the 2012-13 season
 print(f"Total home wins for the 2012-13 season: {total_home_wins_2012}")
-# %%
+
+ # %% 
