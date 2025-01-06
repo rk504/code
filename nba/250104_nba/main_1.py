@@ -46,7 +46,6 @@ def calculate_season(date):
 
 game_data_filtered['gameDate'] = pd.to_datetime(game_data_filtered['gameDate'])
 game_data_filtered['season'] = game_data_filtered['gameDate'].apply(calculate_season)
-game_data_filtered['season'] = clutch['gameDate'].apply(calculate_season)
 
 # %%
 # Assuming 'game_data' is your original DataFrame
