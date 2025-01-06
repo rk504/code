@@ -24,12 +24,6 @@ team_data_filtered = team_data_sorted.drop_duplicates(subset='teamId')
 team_data_filtered.loc[team_data_filtered['teamId'] == 1610612740, 'teamAbbrev'] = 'NOP'
 team_data_filtered.loc[team_data_filtered['teamId'] == 1610612740, 'teamName'] = 'Pelicans'
 
-# Verify the result
-print(team_data_filtered)
-print("Length of filtered team data:", len(team_data_filtered))
-
-
-
 # %%
 # Let pandas infer the date format and convert 'gameDate' to datetime
 game_data['gameDate'] = pd.to_datetime(game_data['gameDate'], errors='coerce')
@@ -42,14 +36,6 @@ game_data['pointDifferential'] = game_data['homeScore'] - game_data['awayScore']
 game_data_filtered = game_data.iloc[:, :-6]
 game_data_filtered['pointDifferential'] = game_data_filtered['homeScore'] - game_data_filtered['awayScore']
 
-# %%
-# Assuming 'game_data' is your original DataFrame
-
-# Filter the DataFrame for games where the point differential is less than 5
-clutch = game_data_filtered[abs(game_data_filtered['pointDifferential']) < 5]
-
-
-# %%
 # Calculate the season column
 def calculate_season(date):
     year = date.year
@@ -57,6 +43,17 @@ def calculate_season(date):
         return f'{year - 1}-{str(year)[-2:]}'
     else:
         return f'{year}-{str(year + 1)[-2:]}'
+
+game_data_filtered['gameDate'] = pd.to_datetime(game_data_filtered['gameDate'])
+game_data_filtered['season'] = game_data_filtered['gameDate'].apply(calculate_season)
+game_data_filtered['season'] = clutch['gameDate'].apply(calculate_season)
+
+# %%
+# Assuming 'game_data' is your original DataFrame
+
+# Filter the DataFrame for games where the point differential is less than 5
+clutch = game_data_filtered[abs(game_data_filtered['pointDifferential']) < 5]
+# %%
 
 clutch = clutch.copy()
 clutch['gameDate'] = pd.to_datetime(clutch['gameDate'])
@@ -70,8 +67,6 @@ print(clutch_cleaned.head())
 
 # Verify the result
 print(clutch_cleaned.tail())
-
-
 
 # %%
 # Define the mapping from teamId to teamAbbrev
@@ -145,11 +140,11 @@ def filter_team_head(dataframe, team_id, n=5):
     """
     filtered_df = dataframe[(dataframe['hometeamId'] == team_id) | (dataframe['awayteamId'] == team_id)]
     return filtered_df.head(n)
-
+""" 
 # Example usage:
 team_id = 1610612755  # Philadelphia's teamID
 result = filter_team_head(table, team_id)
-print(result)
+print(result) """
 
 # %%
 # Sort the dictionary by the team abbreviation (value) alphabetically
@@ -251,3 +246,10 @@ total_home_wins_2012 = season_2012_data['win'].sum()
 print(f"Total home wins for the 2012-13 season: {total_home_wins_2012}")
 
  # %% 
+ # next count games in 2012-13 season data - is this an issue for all data?
+# Count unique game IDs in game_data_filtered by season
+unique_game_ids_by_season = game_data_filtered.groupby('season')['gameId'].nunique()
+
+# Print unique game IDs starting from the 2010-11 season to the end
+print(unique_game_ids_by_season.loc['2010-11':])
+# %%
