@@ -33,6 +33,9 @@ game_data['gameDate'] = pd.to_datetime(game_data['gameDate'], errors='coerce')
 game_data['gameDate'] = game_data['gameDate'].dt.strftime('%Y-%m-%d')  # Convert to YYYY-MM-DD format
 game_data['pointDifferential'] = game_data['homeScore'] - game_data['awayScore']
 
+# Filter game_data for unique gameID values
+game_data = game_data.drop_duplicates(subset='gameId')
+
 # Drop the last 5 columns
 game_data_filtered = game_data.iloc[:, :-6]
 game_data_filtered['pointDifferential'] = game_data_filtered['homeScore'] - game_data_filtered['awayScore']
@@ -40,7 +43,7 @@ game_data_filtered['pointDifferential'] = game_data_filtered['homeScore'] - game
 # Calculate the season column
 def calculate_season(date):
     year = date.year
-    if date.month <= 6:
+    if date.month <= 8:
         return f'{year - 1}-{str(year)[-2:]}'
     else:
         return f'{year}-{str(year + 1)[-2:]}'
@@ -49,8 +52,6 @@ game_data_filtered['gameDate'] = pd.to_datetime(game_data_filtered['gameDate'])
 game_data_filtered['season'] = game_data_filtered['gameDate'].apply(calculate_season)
 
 # %%
-# Assuming 'game_data' is your original DataFrame
-
 # Filter the DataFrame for games where the point differential is less than 5
 clutch = game_data_filtered[abs(game_data_filtered['pointDifferential']) < 5]
 # %%
@@ -211,10 +212,99 @@ plt.show()
 #not bad. issues with DEN and NOP since rebranding...Why's it missing?? DEN and MIN since 2012? Can rly perfect this and then send it off. Got p far, but 2012 season is still fkn weird.
 #fixed this thanks to data bogue - issue is now 2012-13 season is missing a serious amount of data from the table data. Need to fix this.
  # %% 
+# Remove duplicate gameIDs from game_data_filtered
+game_data_filtered = game_data_filtered.drop_duplicates(subset='gameId')
+ # %% 
  # next count games in 2012-13 season data - is this an issue for all data?
 # Count unique game IDs in game_data_filtered by season
 unique_game_ids_by_season = game_data_filtered.groupby('season')['gameId'].nunique()
 
 # Print unique game IDs starting from the 2010-11 season to the end
 print(unique_game_ids_by_season.loc['2010-11':])
+# %%
+# Filter for rows where 'season' is 'nan-an'
+nan_an_season_games = game_data_filtered[game_data_filtered['season'] == 'nan-an']
+
+# Display the tail of the DataFrame
+print(nan_an_season_games.tail())
+# it isn't that the 12-13 games are being put into nan-an. I wonder why they are missing.
+
+#  it is simply missing in the dataset! I can't fix this. I can only work with the data I have.
+# %%
+# Exclude the 2012-13 season
+table_excluded = table[table['season'] != '2012-13']
+
+# Create a pivot table for the heatmap excluding the 2012-13 season
+pt_excluded = table_excluded.pivot_table(index='hometeamAbbrev', columns='season', values='win', aggfunc='count', fill_value=0)
+
+# Reverse the order of the seasons
+pt_excluded = pt_excluded[sorted(pt_excluded.columns, reverse=True)]
+
+# Add an average column at the end of the heatmap
+pt_excluded['Average'] = pt_excluded.mean(axis=1).astype(int)
+
+# Reorder columns to place 'Average' at the end
+cols_excluded = pt_excluded.columns.tolist()
+cols_excluded = [col for col in cols_excluded if col != 'Average'] + ['Average']
+pt_excluded = pt_excluded[cols_excluded]
+
+# Output the result
+print(pt_excluded)
+
+# Create the heatmap with seasons on the x-axis and home team abbreviations on the y-axis
+plt.figure(figsize=(12, 10))
+sns.heatmap(pt_excluded, annot=True, cmap="coolwarm", fmt="d", cbar=True)
+
+# Add titles and labels
+plt.title('NBA Team Clutch Home Wins (2004-05 to 2024-25, excluding 2012-13)', fontsize=16)
+plt.xlabel('Season')
+plt.ylabel('Home Team Abbreviation')
+
+plt.tight_layout()
+plt.show()
+# %%
+# Exclude the 2012-13 and 2024-25 seasons
+table_excluded = table[(table['season'] != '2012-13') & (table['season'] != '2024-25')]
+
+# Create a pivot table for the heatmap excluding the 2012-13 and 2024-25 seasons
+pt_excluded = table_excluded.pivot_table(index='hometeamAbbrev', columns='season', values='win', aggfunc='count', fill_value=0)
+
+# Add an average column at the end of the heatmap
+pt_excluded['Average'] = pt_excluded.mean(axis=1).astype(int)
+
+# Reorder columns to place 'Average' at the end
+cols_excluded = pt_excluded.columns.tolist()
+cols_excluded = [col for col in cols_excluded if col != 'Average'] + ['Average']
+pt_excluded = pt_excluded[cols_excluded]
+
+# Output the result
+print(pt_excluded)
+
+# Create the heatmap with seasons on the x-axis and home team abbreviations on the y-axis
+plt.figure(figsize=(12, 10))
+sns.heatmap(pt_excluded, annot=True, cmap="coolwarm", fmt="d", cbar=True)
+
+# Add titles and labels
+plt.title('NBA Team Clutch Home Wins (2004-05 to 2023-24, excluding 2012-13)', fontsize=16)
+plt.xlabel('Season')
+plt.ylabel('Home Team Abbreviation')
+
+plt.tight_layout()
+plt.show()
+# %%
+# Now trying to figure out duplicates in 04-05 NOP data - some show OKC Hor, others NOP.
+# Filter for 2004-05 season and NOP home games
+nop_2004_05_clutch_home_wins = table[(table['season'] == '2004-05') & (table['hometeamAbbrev'] == 'NOP') & (table['win'] == 1)]
+
+# Display the result
+print(nop_2004_05_clutch_home_wins)
+# %%
+mia_2022_23_clutch_home_wins = table[(table['season'] == '2022-23') & (table['hometeamAbbrev'] == 'MIA') & (table['win'] == 1)]
+
+# Display the result
+print(mia_2022_23_clutch_home_wins)
+
+# Calculate the length of the new table
+length_of_table = len(mia_2022_23_clutch_home_wins)
+print(f"Length of the new table: {length_of_table}")
 # %%
