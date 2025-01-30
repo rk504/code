@@ -6,7 +6,7 @@ const mockOpportunities = [
     title: 'Meal Delivery Driver',
     description: 'Help deliver nutritious meals to New Yorkers living with severe illness through God\'s Love We Deliver.',
     organization: 'God\'s Love We Deliver',
-    date: '2024-03-15T09:00:00',
+    date: '2025-03-15T09:00:00',
     duration: 3,
     location: {
       lat: 40.7453,
@@ -17,14 +17,14 @@ const mockOpportunities = [
     participants: ['user1', 'user2'],
     maxParticipants: 20,
     skills: ['Driving', 'Customer Service'],
-    image: 'https://images.unsplash.com/photo-1594708767771-a7502209ff51?auto=format&fit=crop&q=80'
+    image: 'https://images.unsplash.com/photo-1594708767771-a7502209ff51?auto=format&fit=crop&q=80' 
   },
   {
     id: '2',
     title: 'Kitchen Meal Prep',
     description: 'Join the kitchen team at God\'s Love We Deliver to help prepare nutritious meals for our clients.',
     organization: 'God\'s Love We Deliver',
-    date: '2024-03-20T08:00:00',
+    date: '2025-03-20T08:00:00',
     duration: 4,
     location: {
       lat: 40.7453,
@@ -42,7 +42,7 @@ const mockOpportunities = [
     title: 'Central Park Conservation',
     description: 'Help maintain the beauty of Central Park through gardening and clean-up activities.',
     organization: 'Central Park Conservancy',
-    date: '2024-03-22T09:00:00',
+    date: '2025-03-22T09:00:00',
     duration: 4,
     location: {
       lat: 40.7829,
@@ -60,7 +60,7 @@ const mockOpportunities = [
     title: 'Food Pantry Assistant',
     description: 'Support the Food Bank For New York City by helping organize and distribute food to those in need.',
     organization: 'Food Bank For New York City',
-    date: '2024-03-25T10:00:00',
+    date: '2025-03-25T10:00:00',
     duration: 4,
     location: {
       lat: 40.7133,

@@ -190,4 +190,3 @@ axes[2].set_title('NBA Team Clutch Home Win-Loss Difference (2004-05 to 2022-23,
 plt.tight_layout()
 plt.show()
 # %%
-    
