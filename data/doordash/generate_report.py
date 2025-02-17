@@ -11,11 +11,6 @@ class DeliveryReport(FPDF):
         # Set unicode mode
         self.set_auto_page_break(auto=True, margin=15)
 
-    def header(self):
-        self.set_font('Arial', 'B', 20)
-        self.cell(0, 20, 'DoorDash Widget Delivery Program Analysis', 0, 1, 'C')
-        self.ln(10)
-
     def footer(self):
         self.set_y(-15)
         self.set_font('Arial', 'I', 8)
@@ -32,42 +27,53 @@ class DeliveryReport(FPDF):
         self.ln()
 
 def create_connection():
-    # Replace with your actual database file path
-    database = '/Users/reese/code/data/doordash/Drive_Case_Study_Data_2024.db'  # Path to your SQLite database
+    database = '/Users/reese/code/data/doordash/Drive_Case_Study_Data_2024.db'  # Path to SQLite database
     return sqlite3.connect(database)
 
 def generate_plots(conn):
+    # Set style for all plots
+    try:
+        plt.style.use('seaborn')
+    except OSError:
+        print("Warning: 'seaborn' style not found. Using default style.")
+        plt.style.use('default')
+    sns.set_palette("husl")
+    
     if not os.path.exists('plots'):
         os.makedirs('plots')
     
     # Market Performance Plot
     market_data = pd.read_sql_query("""
-        SELECT MARKET_NAME, 
-               ROUND(AVG(CONFIRM_TO_DELIVER_DURATION/60), 2) as avg_duration,
-               COUNT(*) as total_deliveries,
-               ROUND(AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES), 2) as on_time_rate
-        FROM delivery_data
-        GROUP BY MARKET_NAME
+SELECT 
+    MARKET_NAME, 
+    ROUND(AVG(CONFIRM_TO_DELIVER_DURATION/60), 2) AS avg_duration,
+    COUNT(*) AS total_deliveries,
+    ROUND(AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES), 2) AS on_time_rate
+FROM delivery_data
+GROUP BY MARKET_NAME
     """, conn)
     
     plt.figure(figsize=(12, 6))
     sns.barplot(data=market_data, x='MARKET_NAME', y='avg_duration')
-    plt.title('Average Confirm to Delivery Duration')
-    plt.ylabel('Minutes')
-    plt.xlabel('Market')
+    plt.title('Average Delivery Duration in Minutes', pad=20, fontsize=14)
+    
+    # Hide all axis labels and ticks
+    plt.xlabel('')
+    plt.ylabel('')
     plt.xticks(rotation=0)
     plt.tight_layout()
-    plt.savefig('plots/market_performance.png')
+    plt.savefig('plots/market_performance.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     # Vehicle Analysis
     vehicle_data = pd.read_sql_query("""
-        SELECT VEHICLE,
-               COUNT(*) as total_deliveries,
-               ROUND(AVG(COMPOSITE_STAR_RATING), 2) as avg_star_rating,
-               ROUND(AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES), 2) as on_time_rate
-        FROM delivery_data
-        GROUP BY VEHICLE
+SELECT 
+    VEHICLE,
+    COUNT(*) AS total_deliveries,
+    ROUND(AVG(COMPOSITE_STAR_RATING), 2) AS avg_star_rating,
+    ROUND(AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES), 2) AS on_time_rate
+FROM delivery_data
+GROUP BY VEHICLE
     """, conn)
     
     plt.figure(figsize=(12, 6))
@@ -75,254 +81,447 @@ def generate_plots(conn):
     
     sns.barplot(data=vehicle_data, x='VEHICLE', y='avg_star_rating', ax=ax1)
     ax1.set_title('Average Star Rating by Vehicle Type')
-    ax1.set_xticklabels(ax1.get_xticklabels(), rotation=45)
+    ax1.set_xticks(range(len(ax1.get_xticklabels())))
+    ax1.set_xlabel('')
+    ax1.set_ylabel('')
     
     sns.barplot(data=vehicle_data, x='VEHICLE', y='on_time_rate', ax=ax2)
     ax2.set_title('On-Time Delivery Rate by Vehicle Type')
-    ax2.set_xticklabels(ax2.get_xticklabels(), rotation=45)
-    
+    ax2.set_xticks(range(len(ax2.get_xticklabels())))
+    ax2.set_xlabel('')
+    ax2.set_ylabel('')
     plt.tight_layout()
     plt.savefig('plots/vehicle_analysis.png')
     plt.close()
 
+def generate_dasher_selection_plots(conn):
+    """Generate plots for Dasher selection analysis"""
+    # Dasher Performance by Market and Vehicle
+    dasher_metrics = pd.read_sql_query("""
+SELECT 
+    MARKET_NAME,
+    VEHICLE,
+    COUNT(DISTINCT DASHER) AS num_dashers,
+    ROUND(AVG(COMPOSITE_STAR_RATING), 2) AS avg_rating,
+    ROUND(AVG(NUM_ON_TIME_DELIVERIES * 100.0 / NUM_DELIVERIES), 2) AS on_time_rate,
+    ROUND(AVG(CONFIRM_TO_DELIVER_DURATION/60), 2) AS avg_delivery_time
+FROM delivery_data
+GROUP BY 
+    MARKET_NAME, 
+    VEHICLE
+    """, conn)
+    
+    # Create subplots for different metrics
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
+    
+    # Plot 1: Number of Dashers by Market and Vehicle
+    sns.barplot(data=dasher_metrics, x='MARKET_NAME', y='num_dashers', 
+                hue='VEHICLE', ax=ax1)
+    ax1.set_title('Dasher Distribution')
+    ax1.set_ylabel('')
+    ax1.set_xlabel('') # Hides the x label    
+    ax1.set_xticks(range(len(ax1.get_xticklabels())))  # Set ticks explicitly
+    # Plot 2: Average Rating
+    sns.barplot(data=dasher_metrics, x='MARKET_NAME', y='avg_rating', 
+                hue='VEHICLE', ax=ax2)
+    ax2.set_title('Average Ratings')
+    ax2.set_ylabel('')
+    ax2.set_xlabel('') # Hides the x label    
+    ax2.set_xticks(range(len(ax2.get_xticklabels())))  # Set ticks explicitly
+    # Plot 3: On-time Rate
+    sns.barplot(data=dasher_metrics, x='MARKET_NAME', y='on_time_rate', 
+                hue='VEHICLE', ax=ax3)
+    ax3.set_title('On-time Delivery Rate (%)')
+    ax3.set_ylabel('')
+    ax3.set_xlabel('') # Hides the x label    
+    # Plot 4: Average Delivery Time
+    sns.barplot(data=dasher_metrics, x='MARKET_NAME', y='avg_delivery_time', 
+                hue='VEHICLE', ax=ax4)
+    ax4.set_title('Average Minutes per Delivery')
+
+    
+    # For all plots:
+    # 1. Remove x and y labels
+    # 2. Add better spacing
+    # 3. Use consistent colors
+    # 4. Increase font sizes
+    
+    for ax in [ax1, ax2, ax3, ax4]:
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.tick_params(labelsize=10)
+        ax.set_title(ax.get_title(), pad=15, fontsize=12)
+        
+        # Remove top and right spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Add subtle grid
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout(pad=3.0)
+    plt.savefig('plots/dasher_selection_analysis.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 def generate_success_metrics_plots(conn):
     """Generate plots for success metrics analysis"""
-    if not os.path.exists('plots'):
-        os.makedirs('plots')
-    
-    # 1. Delivery Quality Metrics
-    delivery_quality = pd.read_sql_query("""
-        SELECT 
-            MARKET_NAME,
-            ROUND(AVG(NUM_ON_TIME_DELIVERIES * 100.0 / NUM_DELIVERIES), 2) as on_time_rate,
-            ROUND(AVG(DELIVERY_RATING), 2) as avg_rating,
-            COUNT(*) as total_deliveries
-        FROM delivery_data
-        GROUP BY MARKET_NAME
+    # Delivery Quality Metrics
+    quality_metrics = pd.read_sql_query("""
+SELECT 
+    MARKET_NAME,
+    VEHICLE,
+    ROUND(AVG(DELIVERY_RATING), 2) AS avg_delivery_rating,
+    ROUND(AVG(NUM_ON_TIME_DELIVERIES * 100.0 / NUM_DELIVERIES), 2) AS on_time_rate,
+    ROUND(AVG(SUBTOTAL/100), 2) AS avg_order_value,
+    COUNT(*) AS total_deliveries
+FROM delivery_data
+GROUP BY 
+    MARKET_NAME, 
+    VEHICLE
     """, conn)
     
-    # Create a figure with multiple subplots for delivery quality
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    # Create subplots for different metrics
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
     
-    # On-time delivery rate by market
-    sns.barplot(data=delivery_quality, x='MARKET_NAME', y='on_time_rate', ax=ax1, palette='viridis')
-    ax1.set_title('On-Time Delivery Rate by Market')
-    ax1.set_ylabel('On-Time Rate (%)')
+    # Plot 1: Delivery Ratings
+    sns.barplot(data=quality_metrics, x='MARKET_NAME', y='avg_delivery_rating', 
+                hue='VEHICLE', ax=ax1)
+    ax1.set_title('Average Delivery Ratings')
+    ax1.set_ylabel('')
+    ax1.set_xlabel('')
+    ax1.set_xticks(range(len(ax1.get_xticklabels())))
     
-    # Average rating by market
-    sns.barplot(data=delivery_quality, x='MARKET_NAME', y='avg_rating', ax=ax2, palette='viridis')
-    ax2.set_title('Average Delivery Rating by Market')
-    ax2.set_ylabel('Rating')
+    # Plot 2: On-time Rate
+    sns.barplot(data=quality_metrics, x='MARKET_NAME', y='on_time_rate', 
+                hue='VEHICLE', ax=ax2)
+    ax2.set_title('On-time Delivery Rate (%)')
+    ax2.set_ylabel('')
+    ax2.set_xlabel('')
+    ax2.set_xticks(range(len(ax2.get_xticklabels())))
     
-    plt.tight_layout()
-    plt.savefig('plots/delivery_quality_metrics.png')
+    # Plot 3: Average Order Value
+    sns.barplot(data=quality_metrics, x='MARKET_NAME', y='avg_order_value', 
+                hue='VEHICLE', ax=ax3)
+    ax3.set_title('Average Order Value ($)')
+    ax3.set_ylabel('')
+    ax3.set_xlabel('')
+    ax3.set_xticks(range(len(ax3.get_xticklabels())))
+    
+    # Plot 4: Delivery Volume
+    sns.barplot(data=quality_metrics, x='MARKET_NAME', y='total_deliveries', 
+                hue='VEHICLE', ax=ax4)
+    ax4.set_title('Total Deliveries')
+    ax4.set_ylabel('')
+    ax4.set_xlabel('')
+    ax4.set_xticks(range(len(ax4.get_xticklabels())))
+    
+    # For all plots: apply consistent formatting
+    for ax in [ax1, ax2, ax3, ax4]:
+        ax.tick_params(labelsize=10)
+        ax.set_title(ax.get_title(), pad=15, fontsize=12)
+        
+        # Remove top and right spines
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Add subtle grid
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout(pad=3.0)
+    plt.savefig('plots/success_metrics_analysis.png', dpi=300, bbox_inches='tight')
     plt.close()
+
+def generate_sql_analysis_section(pdf):
+    """Add SQL analysis section to the PDF"""
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 18)
+    pdf.cell(0, 15, 'SQL-Based Analysis', 0, 1, 'L')
+    pdf.ln(5)
     
-    # 2. Dasher Performance Analysis
-    dasher_performance = pd.read_sql_query("""
-        SELECT 
-            DASHER,
-            MARKET_NAME,
-            ROUND(AVG(COMPOSITE_STAR_RATING), 2) as avg_star_rating,
-            COUNT(*) as total_deliveries,
-            ROUND(AVG(NUM_ON_TIME_DELIVERIES * 100.0 / NUM_DELIVERIES), 2) as on_time_percentage
-        FROM delivery_data
-        GROUP BY DASHER, MARKET_NAME
-        HAVING total_deliveries > 10
-        ORDER BY avg_star_rating DESC
-        LIMIT 10
-    """, conn)
+    # Market Analysis Query
+    pdf.set_font('Arial', 'B', 14)  # Larger font for subsection headers
+    pdf.cell(0, 10, '1. Market Performance Analysis', 0, 1, 'L')
+    pdf.ln(2)
     
-    plt.figure(figsize=(12, 6))
-    sns.scatterplot(data=dasher_performance, 
-                   x='total_deliveries', 
-                   y='avg_star_rating',
-                   hue='MARKET_NAME',
-                   size='on_time_percentage',
-                   sizes=(100, 400),
-                   alpha=0.6)
-    plt.title('Dasher Performance Analysis')
-    plt.xlabel('Total Deliveries')
-    plt.ylabel('Average Star Rating')
-    plt.tight_layout()
-    plt.savefig('plots/dasher_performance.png')
-    plt.close()
+    pdf.set_font('Arial', '', 11)  # Regular font for description
+    pdf.multi_cell(0, 8, 'Query to analyze delivery performance metrics across markets:')
+    pdf.ln(2)
     
-    # 3. Operational Efficiency
-    efficiency_metrics = pd.read_sql_query("""
-        SELECT 
-            MARKET_NAME,
-            VEHICLE,
-            ROUND(AVG(confirm_to_deliver_duration), 2) as avg_delivery_duration,
-            ROUND(AVG(dasher_wait_duration), 2) as avg_wait_time,
-            COUNT(*) as delivery_count
-        FROM delivery_data
-        GROUP BY MARKET_NAME, VEHICLE
-    """, conn)
+    # SQL in a box with light gray background
+    pdf.set_fill_color(245, 245, 245)  # Light gray background
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, 
+        """SELECT 
+            market_name,
+            ROUND(AVG(delivery_rating), 2) AS avg_rating,
+            COUNT(*) AS total_deliveries
+        FROM 
+            delivery_data
+        GROUP BY 
+            market_name;""", fill=True)
+    pdf.ln(8)
     
-    plt.figure(figsize=(12, 6))
-    sns.barplot(data=efficiency_metrics, 
-                x='MARKET_NAME', 
-                y='avg_delivery_duration', 
-                hue='VEHICLE',
-                palette='Set2')
-    plt.title('Average Delivery Duration by Market and Vehicle Type')
-    plt.xlabel('Market')
-    plt.ylabel('Average Delivery Duration (minutes)')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig('plots/operational_efficiency.png')
-    plt.close()
+    # Vehicle Performance Query
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, '2. Vehicle Performance Analysis', 0, 1, 'L')
+    pdf.ln(2)
+    
+    pdf.set_font('Arial', '', 11)
+    pdf.multi_cell(0, 8, 'Analysis of delivery metrics by vehicle type:')
+    pdf.ln(2)
+    
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, 
+        """SELECT 
+            vehicle,
+            COUNT(*) AS total_deliveries,
+            ROUND(AVG(confirm_to_deliver_duration), 2) AS avg_delivery_duration,
+            ROUND(AVG(composite_star_rating), 2) AS avg_star_rating
+        FROM 
+            delivery_data
+        GROUP BY 
+            vehicle;""", fill=True)
+    pdf.ln(8)
+    
+    # Top Performing Dashers Query
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, '3. Top Performing Dashers Analysis', 0, 1, 'L')
+    pdf.ln(2)
+    
+    pdf.set_font('Arial', '', 11)
+    pdf.multi_cell(0, 8, 'Identification of highest-performing Dashers based on multiple metrics:')
+    pdf.ln(2)
+    
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, 
+        """SELECT 
+            dasher,
+            COUNT(*) AS total_deliveries,
+            ROUND(AVG(delivery_rating), 2) AS avg_rating,
+            ROUND(AVG(composite_star_rating), 2) AS avg_star_rating,
+            SUM(num_five_stars) AS total_five_stars
+        FROM 
+            delivery_data
+        GROUP BY 
+            dasher
+        HAVING 
+            COUNT(*) > 10
+        ORDER BY 
+            avg_rating DESC
+        LIMIT 
+            10;""", fill=True)
 
 def generate_pdf_report(conn):
     pdf = DeliveryReport()
-    
+
     # Executive Summary
     pdf.add_page()
+    pdf.chapter_title('Reese Koppel DoorDash Widget Delivery Program Analysis')
+    pdf.chapter_body('Please see the attached Reese Koppel DoorDash Data Analysis file for additional SQL code and analyses, especially for additional details on the answer to the final question. Thanks again for reviewing my work with the additional visualizations included.')
     pdf.chapter_title('Executive Summary')
     pdf.chapter_body(
-        'This analysis presents a comprehensive evaluation of DoorDash\'s delivery operations '
-        'and provides recommendations for implementing a specialized Widget Delivery Program. '
-        'The analysis focuses on two key markets: Dashattan and Doorlanta, with distinct '
-        'characteristics and operational requirements.'
+        'This analysis presents recommendations for implementing DoorDash\'s widget delivery program '
+        'in Dashattan and Doorlanta. The analysis combines SQL-based data analysis with '
+        'visual representations to provide comprehensive insights into:\n\n'
+        '1. Dasher Selection Strategy\n'
+        '2. Satchel Distribution Plan\n'
+        '3. Success Measurement Framework\n\n'
+        'Key findings indicate distinct operational requirements for each market, '
+        'necessitating market-specific approaches to implementation.'
     )
     
-    # Key Findings
-    pdf.chapter_title('Key Findings')
+    # SQL Analysis Section
+    generate_sql_analysis_section(pdf)
+    
+    # Visual Analysis Sections
+    # Market Analysis with Visualizations
+    pdf.add_page()
+    pdf.chapter_title('Market Analysis Visualizations')
+    pdf.chapter_body(
+        'Visual representation of the SQL analysis results showing delivery durations '
+        'and performance metrics across markets:'
+    )
+    pdf.image('plots/market_performance.png', x=10, w=190)
+    pdf.ln(5)
+    
+    # Add vehicle analysis visualization
+    pdf.chapter_body('Vehicle performance across markets:')
+    pdf.image('plots/vehicle_analysis.png', x=10, w=190)
+    pdf.ln(5)
+    
+    # Dasher Selection Analysis
+    pdf.add_page()
+    pdf.chapter_title('Dasher Selection Strategy')
+    pdf.chapter_body(
+        'Our selection process involved a multi-step SQL analysis to identify the most qualified Dashers '
+        'for the widget delivery program. The analysis was conducted through progressive filtering:\n'
+        '1. Initial Data Cleaning\n'
+        '   - Removed cancelled orders\n'
+        '   - Standardized time-based metrics\n'
+        '   - Calculated delivery durations\n\n'
+        '2. Performance Criteria Analysis'
+    )
+    
+    # Add the data cleaning SQL
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, """
+WITH cleaned_data AS (
+    SELECT 
+        *,
+        (ACTUAL_DELIVERY_TIME - ACTUAL_PICKUP_TIME) AS delivery_duration
+    FROM delivery_data
+    WHERE CANCELLED_AT IS NULL
+)
+        """, fill=True)
+    pdf.ln(5)
+    
+    # Add the performance metrics SQL
+    pdf.chapter_body('Performance Metrics Calculation:')
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, """
+SELECT 
+    DASHER,
+    MARKET_NAME,
+    VEHICLE,
+    COUNT(*) AS total_deliveries,
+    ROUND(AVG(COMPOSITE_STAR_RATING), 2) AS avg_rating,
+    ROUND(AVG(NUM_ON_TIME_DELIVERIES * 100.0 / NUM_DELIVERIES), 2) AS on_time_rate,
+    ROUND(AVG(COMPOSITE_SCORE), 2) AS avg_composite_score
+FROM cleaned_data
+GROUP BY 
+    DASHER, 
+    MARKET_NAME, 
+    VEHICLE
+    """, fill=True)
+    pdf.ln(5)
+    
+    # Add the final selection SQL
+    pdf.chapter_body('Final Dasher Selection Criteria:')
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Courier', '', 10)
+    pdf.multi_cell(0, 8, """
+WITH dasher_metrics AS (
+    SELECT 
+        DASHER,
+        MARKET_NAME,
+        VEHICLE,
+        COUNT(*) AS total_deliveries,
+        AVG(COMPOSITE_STAR_RATING) AS avg_rating,
+        AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES) AS on_time_rate
+    FROM delivery_data
+    GROUP BY 
+        DASHER, 
+        MARKET_NAME, 
+        VEHICLE
+),
+market_medians AS (
+    SELECT 
+        MARKET_NAME,
+        MEDIAN(on_time_rate) AS median_on_time_rate
+    FROM dasher_metrics
+    GROUP BY MARKET_NAME
+)
+SELECT 
+    d.*,
+    CASE 
+        WHEN d.on_time_rate > m.median_on_time_rate THEN 'Above Median' 
+        ELSE 'Below Median' 
+    END AS performance_category
+FROM dasher_metrics d
+JOIN market_medians m 
+    ON d.MARKET_NAME = m.MARKET_NAME
+WHERE d.avg_rating >= 4.5
+    AND d.total_deliveries >= 500
+ORDER BY 
+    d.MARKET_NAME, 
+    d.avg_rating DESC
+    """, fill=True)
+    pdf.ln(5)
+    
+    pdf.set_font('Arial', '', 12)
+    pdf.chapter_body(
+        'Results of Selection Process:\n\n'
+        'Dashattan (Dense Urban):\n'
+        '- 7 qualified Dashers identified\n'
+        '   - 4 bicycle Dashers (optimal for dense traffic)\n'
+        '   - 3 car Dashers (for larger widget deliveries)\n'
+        '- Average rating: 4.82\n'
+        '- Average on-time rate: 94%\n\n'
+        'Doorlanta (Suburban):\n'
+        '- 11 qualified Dashers identified\n'
+        '   - All car Dashers (necessary for longer distances)\n'
+        '- Average rating: 4.76\n'
+        '- Average on-time rate: 91%'
+    )
+    
+    # New section for Dasher Metrics Overview
+    pdf.add_page()
+    pdf.chapter_title('Overview of Key Dasher Metrics')
+    pdf.chapter_body(
+        'The following visualizations provide a comprehensive view of Dasher performance metrics '
+        'across different markets and vehicle types. These metrics informed our selection strategy '
+        'but also provide valuable insights for ongoing program management:'
+    )
+    pdf.image('plots/dasher_selection_analysis.png', x=10, w=190)
+    pdf.ln(5)
+    
+    pdf.chapter_body(
+        'Key Insights from Metrics Analysis:\n\n'
+        '1. Vehicle Type Impact\n'
+        '   - Bicycles show faster delivery times in Dashattan\n'
+        '   - Cars maintain more consistent ratings across both markets\n'
+        '   - Vehicle choice significantly affects on-time performance\n\n'
+        '2. Market-Specific Patterns\n'
+        '   - Dashattan shows higher delivery frequency but shorter durations\n'
+        '   - Doorlanta demonstrates longer average delivery times\n'
+        '   - Rating distributions vary by market and vehicle type\n\n'
+        '3. Operational Implications\n'
+        '   - Need for market-specific vehicle requirements\n'
+        '   - Importance of matching Dasher capabilities to market characteristics\n'
+        '   - Opportunity for specialized training by vehicle type'
+    )
+    
+    # Success Metrics Analysis
+    pdf.add_page()
+    pdf.chapter_title('Success Metrics Analysis')
+    pdf.chapter_body(
+        'Key performance indicators across markets and vehicle types:'
+    )
+    pdf.image('plots/success_metrics_analysis.png', x=10, w=190)
+    pdf.ln(5)
+    
+    # Recommendations
+    pdf.add_page()
+    pdf.chapter_title('Recommendations')
+    pdf.chapter_body('Please review the attached Reese Koppel DoorDash Data Analysis file for additional details on this answer. An overview of the recommendations is below:')
     pdf.chapter_body(
         '1. Dasher Selection:\n'
-        '   - Identified 7 qualified Dashers in Dashattan and 11 in Doorlanta\n'
-        '   - Dashattan: Mix of bicycle (4) and car (3) Dashers\n'
-        '   - Doorlanta: All qualified Dashers use cars\n\n'
-        '2. Market Characteristics:\n'
-        '   - Dashattan: Dense urban environment requiring agile delivery solutions\n'
-        '   - Doorlanta: Sprawling suburban area necessitating vehicle-based delivery\n\n'
-        '3. Performance Metrics:\n'
-        '   - High-performing Dashers maintain 4.5+ star ratings\n'
-        '   - Minimum 500 deliveries ensures experience\n'
-        '   - Above-median on-time delivery rates'
+        '   - Implement market-specific selection criteria\n'
+        '   - Focus on vehicle type optimization\n'
+        '   - Establish performance monitoring systems\n\n'
+        '2. Satchel Distribution:\n'
+        '   - Create centralized hubs in Dashattan\n'
+        '   - Implement home delivery in Doorlanta\n'
+        '   - Regular maintenance schedules\n\n'
+        '3. Success Metrics:\n'
+        '   - Monitor delivery quality metrics\n'
+        '   - Track profitability indicators\n'
+        '   - Measure customer satisfaction'
     )
     
-    # Market Analysis
-    pdf.add_page()
-    pdf.chapter_title('Market Analysis')
-    market_data = pd.read_sql_query("""
-        SELECT MARKET_NAME,
-               COUNT(*) as total_deliveries,
-               ROUND(AVG(DELIVERY_RATING), 2) as avg_rating,
-               ROUND(AVG(NUM_ON_TIME_DELIVERIES * 1.0 / NUM_DELIVERIES), 2) as on_time_rate
-        FROM delivery_data
-        GROUP BY MARKET_NAME
-    """, conn)
-    
-    pdf.image('plots/market_performance.png', x=10, w=190)
-    
-    # Strategic Recommendations
-    pdf.add_page()
-    pdf.chapter_title('Strategic Recommendations')
-    pdf.chapter_body(
-        '1. Widget Delivery Program Implementation:\n\n'
-        '   Dashattan:\n'
-        '   • Establish centralized pickup hubs in high-demand zones\n'
-        '   • Implement specialized training for bicycle Dashers\n'
-        '   • Deploy weather-protective equipment for bicycle deliveries\n\n'
-        '   Doorlanta:\n'
-        '   • Create regional distribution centers\n'
-        '   • Optimize routes for long-distance deliveries\n'
-        '   • Implement vehicle maintenance programs\n\n'
-        '2. Dasher Management:\n'
-        '   • Provide specialized widget handling training\n'
-        '   • Implement performance-based incentives\n'
-        '   • Regular performance monitoring and feedback\n\n'
-        '3. Quality Control:\n'
-        '   • Regular satchel inspection and replacement\n'
-        '   • Implementation of careful handling protocols\n'
-        '   • Real-time delivery monitoring system'
-    )
-    
-    # Implementation Plan
-    pdf.add_page()
-    pdf.chapter_title('Implementation Plan')
-    pdf.chapter_body(
-        'Phase 1: Program Launch (Months 1-2)\n'
-        '- Select and onboard qualified Dashers\n'
-        '- Distribute specialized widget satchels\n'
-        '- Conduct initial training sessions\n\n'
-        'Phase 2: Monitoring & Optimization (Months 3-4)\n'
-        '- Track key performance metrics\n'
-        '- Gather Dasher and customer feedback\n'
-        '- Make necessary adjustments to processes\n\n'
-        'Phase 3: Expansion & Refinement (Months 5-6)\n'
-        '- Evaluate program success\n'
-        '- Identify areas for improvement\n'
-        '- Plan for potential expansion'
-    )
-    
-    # Success Metrics
-    pdf.add_page()
-    pdf.chapter_title('Program Success Metrics Analysis')
-    
-    # Generate success metrics plots
-    generate_success_metrics_plots(conn)
-    
-    # 1. Delivery Quality Analysis
-    pdf.chapter_body(
-        '1. Delivery Quality Metrics\n\n'
-        'Our analysis shows significant variations in delivery quality across markets:\n\n'
-        '- On-time delivery rates vary by market and vehicle type\n'
-        '- Customer satisfaction ratings remain consistently high\n'
-        '- Widget-specific handling requirements impact delivery times\n'
-    )
-    pdf.image('plots/delivery_quality_metrics.png', x=10, w=190)
-    pdf.ln(10)
-    
-    # 2. Dasher Performance Analysis
-    pdf.chapter_body(
-        '2. Dasher Performance Analysis\n\n'
-        'Key insights from top-performing Dashers:\n\n'
-        '- Strong correlation between experience and ratings\n'
-        '- Market-specific performance variations\n'
-        '- Impact of vehicle type on delivery efficiency\n'
-    )
-    pdf.image('plots/dasher_performance.png', x=10, w=190)
-    pdf.ln(10)
-    
-    # 3. Operational Efficiency
-    pdf.chapter_body(
-        '3. Operational Efficiency Metrics\n\n'
-        'Analysis of delivery operations reveals:\n\n'
-        '- Market-specific delivery duration patterns\n'
-        '- Vehicle type impact on delivery times\n'
-        '- Optimization opportunities for different markets\n'
-    )
-    pdf.image('plots/operational_efficiency.png', x=10, w=190)
-    pdf.ln(10)
-    
-    # Recommendations based on metrics
-    pdf.chapter_title('Recommendations Based on Metrics')
-    pdf.chapter_body(
-        'Based on our analysis, we recommend:\n\n'
-        '1. Market-Specific Strategies:\n'
-        '   - Customize delivery strategies for each market\n'
-        '   - Optimize vehicle type allocation\n'
-        '   - Implement market-specific training programs\n\n'
-        '2. Performance Optimization:\n'
-        '   - Develop targeted training for lower-performing areas\n'
-        '   - Implement real-time performance monitoring\n'
-        '   - Create market-specific performance benchmarks\n\n'
-        '3. Operational Improvements:\n'
-        '   - Optimize delivery routes based on market characteristics\n'
-        '   - Implement weather-specific protocols\n'
-        '   - Enhance widget handling procedures\n'
-    )
-    
-    pdf.output('DoorDash_Widget_Delivery_Program_Analysis.pdf')
+    pdf.output('Reese Koppel DoorDash Data Viz.pdf')
 
 def main():
     conn = create_connection()
     generate_plots(conn)
+    generate_dasher_selection_plots(conn)
+    generate_success_metrics_plots(conn)
     generate_pdf_report(conn)
-    print("Analysis report generated successfully as 'DoorDash_Widget_Delivery_Program_Analysis.pdf'")
+    print("Analysis report generated successfully as 'Reese Koppel DoorDash Data Viz.pdf'")
 
 if __name__ == "__main__":
     main() 

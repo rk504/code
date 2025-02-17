@@ -1,4 +1,4 @@
-# Reese Koppel DoorDash Data Analysis
+# Reese Koppel DoorDash Assessment (Initial SQL Analysis)
 
 import pandas as pd
 import numpy as np
